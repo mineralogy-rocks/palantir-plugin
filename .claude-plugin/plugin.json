@@ -1,0 +1,14 @@
+{
+  "name": "palantir",
+  "version": "1.0.0",
+  "description": "Persistent knowledge system for Claude Code — stores decisions, findings, errors, and patterns with semantic search across sessions",
+  "author": {
+    "name": "SGEPT",
+    "url": "https://github.com/mineralogy-rocks"
+  },
+  "repository": "https://github.com/mineralogy-rocks/palantir-plugin",
+  "license": "MIT",
+  "keywords": ["memory", "knowledge-base", "semantic-search", "atomization"],
+  "skills": "./.claude/skills/",
+  "hooks": "./.claude/hooks/hooks.json"
+}

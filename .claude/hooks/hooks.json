@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "agent",
+            "prompt": "${CLAUDE_PLUGIN_ROOT}/.claude/hooks/prompts/pre-compact.md",
+            "model": "sonnet"
+          }
+        ]
+      }
+    ]
+  }
+}
