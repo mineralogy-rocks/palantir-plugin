@@ -1,6 +1,6 @@
 # Atomization Rules
 
-Shared rules for breaking content into discrete knowledge entries. Referenced by the PreCompact hook and `/atomize-session`, `/atomize-me` skills.
+Shared rules for breaking content into discrete knowledge entries. Referenced by the PreCompact hook, the palantir skill, and all write operations.
 
 ## Entry Structure
 
@@ -24,24 +24,13 @@ If the content provided by the user is not enough, then ask 1-3 questions to sat
 | `error` | Bug, failure, root cause, resolution |
 | `pattern` | Reusable approach that worked |
 | `note` | General observation or session summary |
+| `review` | Feedback or assessment of work |
+| `machine-plan` | Atomized entries from approved plans only |
 
 ### Tags
 
-Lowercase, hyphenated, inferred from content. Examples: `django`, `api-design`, `nextjs`, `session-summary`. Use 2-4 tags per entry.
+Lowercase, hyphenated, inferred from content. Examples: `django`, `api-design`, `nextjs`, `session-summary`. Use 2-4 tags per entry. Always check existing tags first via `list_tags`.
 
 ## Guard
 
 If there is no meaningful content to atomize, do nothing silently. Do not create empty or low-value entries.
-
-## Storage
-
-POST all entries in a single bulk request. The server auto-assigns a shared `group_id` to all entries in the batch.
-
-```bash
-curl -s "$PALANTIR_API_URL/v1/entries/bulk" \
-  -H "Authorization: Bearer $PALANTIR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"entries": [{"content": "BODY", "bluf": "BLUF_SUMMARY", "kind": "KIND", "project": "'$PALANTIR_PROJECT_NAME'", "tags": ["tag1", "tag2"]}]}'
-```
-
-The server handles embeddings automatically — content embedding, BLUF embedding (dual), and cross-references via similarity search.

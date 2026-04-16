@@ -1,107 +1,40 @@
 # Palantir API Reference
 
-Base URL: `$PALANTIR_API_URL`. All endpoints require `Authorization: Bearer $PALANTIR_API_KEY` and `Content-Type: application/json`.
+When Palantir MCP tools are available (`mcp__palantir-mcp__*`), use them directly instead of curl commands. The MCP tools handle authentication and project scoping automatically.
 
-## Search (Semantic)
+## MCP Tools
 
-```bash
-curl -s "$PALANTIR_API_URL/v1/search" \
-  -H "Authorization: Bearer $PALANTIR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "TEXT", "project": "PROJECT", "limit": 5}'
-```
+### Search
+- `search_knowledge(query, kind?, tags?, plan_id?, task_id?, search_mode="hybrid", limit=5)`
+- `search_tasks(query, status?, tags?, due_date_lte?, due_date_gte?, limit=5)`
 
-Optional body fields: `kind`, `task_id`, `search_mode`.
+### Entries
+- `create_entry(content, bluf, kind="note", tags?, task_id?)`
+- `create_entries_bulk(entries)` — each entry: {content, bluf, kind, tags, task_id?}
+- `get_entry(entry_id)`
+- `list_entries(kind?, tags?, plan_id?, task_id?, group_id?, limit=20, offset=0)`
 
-### Search Modes
-- `"content"` — search content embeddings only (original behavior)
-- `"bluf"` — search BLUF embeddings only
-- `"hybrid"` (default) — search both, merge via Reciprocal Rank Fusion
+### Plans
+- `save_approved_plan(title, content, entries, tags?, dedupe_key?)` — each entry: {content, bluf, kind="machine-plan", tags}
+- `get_plan(plan_id)`
+- `list_plans(tags?, limit=20, offset=0)`
 
-## Entries
+### Tasks
+- `create_task(title, status="planning", tags?, due_date?)`
+- `get_task(task_id)`
+- `update_task(task_id, status?, title?, tags?, due_date?)`
+- `list_tasks(status?, tags?, due_date_lte?, due_date_gte?, limit=20, offset=0)`
 
-**Create one:**
-```bash
-curl -s "$PALANTIR_API_URL/v1/entries" \
-  -H "Authorization: Bearer $PALANTIR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"content": "TEXT", "bluf": "SUMMARY", "kind": "KIND", "project": "PROJECT"}'
-```
+### Tags
+- `list_tags(q?, limit=50)` — always call before creating entries
 
-Optional fields: `bluf`, `task_id`, `tags` (array).
+## Entry Kinds
+`decision` | `finding` | `error` | `pattern` | `note` | `review` | `machine-plan`
 
-When `bluf` is provided, the server embeds it separately for dual-embedding search. Cross-references (`related_ids`) are auto-detected via similarity search after creation.
-
-**Create bulk** (preferred for 2+ entries):
-```bash
-curl -s "$PALANTIR_API_URL/v1/entries/bulk" \
-  -H "Authorization: Bearer $PALANTIR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"entries": [{"content": "...", "bluf": "...", "kind": "KIND", "project": "PROJECT"}]}'
-```
-
-The server auto-assigns a shared `group_id` (integer) to all entries in a bulk request. Use `group_id` to retrieve all entries from the same atomization.
-
-**List:** `GET /v1/entries?project=PROJECT&kind=KIND&task_id=ID&group_id=ID&limit=N`
-
-**Get:** `GET /v1/entries/{id}`
-
-**Delete:** `DELETE /v1/entries/{id}`
-
-### Entry Kinds
-
-| Kind | Use for |
-|------|---------|
-| `decision` | Architectural/design choices with rationale |
-| `finding` | Something discovered during work |
-| `error` | Bug, failure, root cause, resolution |
-| `pattern` | Reusable approach that worked |
-| `note` | General observation or session summary |
-| `review` | Code/design review feedback |
-
-## Tasks
-
-Tasks are containers that group entries. Title is embedded for semantic search.
-
-**Create:**
-```bash
-curl -s "$PALANTIR_API_URL/v1/tasks" \
-  -H "Authorization: Bearer $PALANTIR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"title": "TITLE", "project": "PROJECT", "status": "planning", "due_date": "YYYY-MM-DD"}'
-```
-
-Optional fields: `due_date` (ISO date, nullable). The server auto-embeds the title for semantic search.
-
-**Search (semantic):**
-```bash
-curl -s "$PALANTIR_API_URL/v1/tasks/search" \
-  -H "Authorization: Bearer $PALANTIR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "TEXT", "project": "PROJECT", "limit": 5}'
-```
-
-Optional body fields: `status`, `due_date_lte`, `due_date_gte` (ISO dates for range filtering). Returns tasks with `score`, `entry_count`, and `due_date`.
-
-**List:** `GET /v1/tasks?project=PROJECT&status=STATUS&due_date_lte=DATE&due_date_gte=DATE`
-
-**Get (with linked entries):** `GET /v1/tasks/{id}`
-
-**Update:**
-```bash
-curl -s "$PALANTIR_API_URL/v1/tasks/{id}" -X PATCH \
-  -H "Authorization: Bearer $PALANTIR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"status": "STATUS"}'
-```
-
-Updatable fields: `status`, `title`, `due_date`. If title changes, embedding is regenerated. Send `"due_date": null` to clear.
-
-**Archive (soft-delete):** `DELETE /v1/tasks/{id}` — sets status to `archived`, does not remove the record.
-
-### Task Statuses
+## Task Statuses
 `planning` | `ready` | `wip` | `review` | `done` | `blocked` | `archived`
 
-## Health
-
-`GET /health` (no auth required)
+## Search Modes
+- `hybrid` (default) — fuses content + BLUF embeddings via Reciprocal Rank Fusion
+- `content` — content embeddings only
+- `bluf` — BLUF embeddings only
