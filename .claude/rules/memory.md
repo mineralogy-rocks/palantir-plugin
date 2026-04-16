@@ -1,74 +1,25 @@
 # Palantir Memory Rules
 
-These rules are mandatory for all sessions in projects connected to Palantir.
-
-## Environment
-
-- `$PALANTIR_API_URL` — base URL (e.g., `http://palantir.local`)
-- `$PALANTIR_API_KEY` — auth token
-- `$PALANTIR_PROJECT_NAME` — project identifier (auto-set by sync.sh)
-
-All curl commands use these env vars directly. No hardcoded values.
+These rules apply to all sessions in projects connected to Palantir.
 
 ## System Overview
 
 | Component | Trigger | What it does |
 |-----------|---------|--------------|
-| **PreCompact hook** | Before context compression | Atomizes full session into discrete entries with BLUFs (model: sonnet) |
-| `/atomize-session` | Manual | Same as PreCompact — atomize current session on demand |
-| `/atomize-me` | Manual | Atomize user-provided text or file into grouped entries |
-| `/recall` | Auto or manual | Search Palantir for past decisions, findings, errors, patterns, and related tasks |
-| `/task` | Manual | Create, update status, or add context entries to tasks |
+| **PreCompact hook** | Before context compression | Atomizes full session into discrete entries with BLUFs |
+| **PostToolUse hook** | After plan approval (ExitPlanMode) | Reminds Claude to save approved plan to Palantir |
+| **palantir skill** | Manual or auto-invoked | Middleware for all Palantir operations — enforces atomization |
 
-Atomization rules are in `$CLAUDE_PROJECT_DIR/.claude/rules/palantir/atomize.md`. 
-Full API reference in `$CLAUDE_PROJECT_DIR/.claude/rules/palantir/api.md`.
+## When to Act
 
-## When to Act Manually
+### Storing knowledge
+Invoke the `palantir` skill whenever the user asks to store, log, or remember something. The skill handles atomization, deduplication, and submission.
 
-### Targeted search mid-session
+### Searching past knowledge
+Invoke the `palantir` skill when the user asks about previous work, past decisions, or how something was handled before.
 
-When you need specific past context (e.g., "how did we handle X before?"), search Palantir:
+### After plan approval
+The PostToolUse hook on ExitPlanMode automatically reminds Claude to save the plan. Follow the Plan Protocol in the palantir skill.
 
-```bash
-curl -s "$PALANTIR_API_URL/v1/search" \
-  -H "Authorization: Bearer $PALANTIR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "DESCRIBE_WHAT_YOU_NEED", "project": "'$PALANTIR_PROJECT_NAME'", "limit": 5}'
-```
-
-### Explicit user request to store something
-
-If the user says "remember this" or explicitly asks to store something, use:
-
-```bash
-curl -s "$PALANTIR_API_URL/v1/entries" \
-  -H "Authorization: Bearer $PALANTIR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"content": "WHAT_TO_STORE", "bluf": "ONE_SENTENCE_SUMMARY", "kind": "KIND", "project": "'$PALANTIR_PROJECT_NAME'"}'
-```
-
-Entry kinds: `decision`, `finding`, `error`, `pattern`, `note`, `review`.
-
-### Task status updates
-
-When work on a task is completed or blocked:
-
-```bash
-curl -s "$PALANTIR_API_URL/v1/tasks/TASK_ID" -X PATCH \
-  -H "Authorization: Bearer $PALANTIR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"status": "NEW_STATUS"}'
-```
-
-Task statuses: `planning`, `ready`, `wip`, `review`, `done`, `blocked`, `archived`.
-
-### Task search
-
-To find a task by topic/title semantically:
-
-```bash
-curl -s "$PALANTIR_API_URL/v1/tasks/search" \
-  -H "Authorization: Bearer $PALANTIR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "DESCRIBE_TASK", "project": "'$PALANTIR_PROJECT_NAME'", "limit": 5}'
-```
+### Task management
+Use the `palantir` skill's Task Protocol to create, update, or add context to tasks.

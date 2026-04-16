@@ -1,13 +1,12 @@
 {
   "hooks": {
-    "PreCompact": [
+    "PostToolUse": [
       {
-        "matcher": "",
+        "matcher": "ExitPlanMode",
         "hooks": [
           {
-            "type": "agent",
-            "prompt": "${CLAUDE_PLUGIN_ROOT}/.claude/hooks/prompts/pre-compact.md",
-            "model": "sonnet"
+            "type": "command",
+            "command": "cat \"${CLAUDE_PLUGIN_ROOT}/.claude/hooks/palantir-plan-reminder.json\""
           }
         ]
       }
