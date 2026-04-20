@@ -20,10 +20,10 @@ docker-compose up -d
 ```bash
 claude plugin install github:mineralogy-rocks/palantir-plugin
 export PALANTIR_API_URL=https://palantir.example.com
-"${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir_login.sh"
+"${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir" login
 ```
 
-That's it. The login script registers an OAuth2 client, opens your browser for GitHub auth,
+That's it. Login registers an OAuth2 client, opens your browser for GitHub auth,
 and stores bearer + refresh tokens at `~/.config/palantir/credentials.json` (mode 600).
 Re-running login reuses the registered client — no duplicate client rows.
 
@@ -48,8 +48,9 @@ The plugin acts as a middleware layer between the AI agent and Palantir. It enfo
 individually-searchable entries — before anything is written. It also ensures
 duplicate checks, tag reuse, correct kind classification, and standalone BLUF summaries.
 
-All Palantir operations go through bash wrappers in `${CLAUDE_PLUGIN_DIR}/.claude/bin/` that
-call the REST API directly using a bearer token refreshed automatically on expiry.
+All Palantir operations go through a single CLI at `${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir`
+that calls the REST API directly using a bearer token refreshed automatically on expiry. Any
+agent (Claude Code, Codex, Gemini, …) can invoke it with the same credentials.
 
 When a plan is approved in `/plan` mode, an async hook sends a deferred reminder
 to save the plan to Palantir during a natural pause — implementation starts immediately.
@@ -82,7 +83,7 @@ The skill routes by intent:
   plugin.json                          # Plugin manifest (v3.0.0)
   marketplace.json                     # Marketplace listing
 .claude/
-  settings.json                        # Bash permission allowlist for wrappers
+  settings.json                        # Bash permission allowlist for subcommands
   skills/palantir/
     SKILL.md                           # Routing + atomization rules + quality checklist
     references/
@@ -90,22 +91,18 @@ The skill routes by intent:
       plan-protocol.md                 # Save approved plans with machine-plan entries
       search-protocol.md               # Search and recall past knowledge
       task-protocol.md                 # Task lifecycle management
+      auth-protocol.md                 # Login lifecycle (PKCE flow, token refresh, logout)
   hooks/
     hooks.json                         # Async hook (PostToolUse on ExitPlanMode)
   rules/
     atomize.md                         # Shared atomization rules
-    api.md                             # Wrapper command reference
+    api.md                             # CLI command reference
     memory.md                          # When to use what
-bin/
-  _auth.sh                             # Auth library (sourced, not executed)
-  _common.sh                           # Common utilities (sourced, not executed)
-  palantir_login.sh                    # PKCE authorization-code login
-  palantir_logout.sh                   # Revoke tokens + delete credentials
-  palantir_entry.sh                    # Entry CRUD (create, bulk, get, list)
-  palantir_search.sh                   # Semantic search (knowledge, tasks)
-  palantir_plan.sh                     # Plan management (save, get, list)
-  palantir_task.sh                     # Task management (create, get, update, list)
-  palantir_tag.sh                      # Tag management (list, create, delete)
+  bin/
+    palantir                           # Executable launcher (exec python3 cli.py "$@")
+    cli.py                             # Unified CLI — all subcommands live here
+    _auth.py                           # Credentials, token refresh, authed HTTP
+    _common.py                         # Output formatting and shared helpers
 ```
 
 ## How it works
@@ -155,15 +152,15 @@ implementing and treats the save as a deferred task.
 
 ## Changes from v2
 
-- **Bash wrappers**: Replaced MCP server dependency with five bash wrappers that call the
-  REST API directly (`palantir_entry.sh`, `palantir_search.sh`, `palantir_plan.sh`,
-  `palantir_task.sh`, `palantir_tag.sh`) plus auth helpers (`palantir_login.sh`,
-  `palantir_logout.sh`)
+- **Unified CLI**: Replaced the MCP server dependency (and, in v3.1, the seven per-domain bash
+  wrappers) with a single `palantir` CLI covering entry / task / plan / search / tag / login /
+  logout. Any agent (Claude Code, Codex, Gemini, …) can invoke it directly.
 - **No MCP server**: Removed `palantir-mcp` container from the Palantir stack — one fewer
-  service, ~30x fewer tool-surface tokens
-- **Auto token refresh**: `_auth.sh` refreshes the bearer token on 401 transparently
-- **Permission allowlist**: `settings.json` pre-approves wrapper calls; login/logout still prompt
-- **Version**: 3.0.0 (breaking — `.mcp.json` configuration no longer required)
+  service, ~30x fewer tool-surface tokens.
+- **Auto token refresh**: `_auth.py` refreshes the bearer token on 401 transparently.
+- **Permission allowlist**: `settings.json` pre-approves subcommands; `logout` still prompts.
+- **Version**: 3.1.0 (breaking — per-domain `.sh` scripts removed; settings.json / skill / rules
+  updated to use `palantir <subcommand>`).
 
 ## License
 

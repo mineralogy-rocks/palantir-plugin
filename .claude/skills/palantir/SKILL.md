@@ -7,7 +7,7 @@ description: >-
   this", "store this", "save to Palantir", "log this", "what do we know about", "recall",
   "search Palantir", or wants to persist an approved plan. Also invoke when the user wants to
   log in or log out of Palantir, or when any wrapper prints `[PALANTIR_LOGIN_REQUIRED]` — the
-  skill owns the login lifecycle and runs `palantir_login.sh` on the user's behalf. This skill
+  skill owns the login lifecycle and runs `palantir login` on the user's behalf. This skill
   enforces atomization — breaking complex knowledge into discrete, standalone, individually-
   searchable entries — before anything is written to Palantir. Use it even for simple
   single-entry writes, because it ensures BLUF quality, correct kind classification, tag reuse,
@@ -45,9 +45,9 @@ Supporting rules (always loaded in context via the plugin):
 
 ## Transport
 
-All Palantir operations go through bash wrappers in `${CLAUDE_PLUGIN_DIR}/.claude/bin/`. 
-Always call `${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir_tag.sh list` before creating entries to reuse existing tags. 
-Use `${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir_entry.sh create --stdin` for long content to avoid argv length limits.
+All Palantir operations go through a single CLI at `${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir`.
+Always call `${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir tag list` before creating entries to reuse existing tags.
+Use `${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir entry create --stdin` for long content to avoid argv length limits.
 
 ## Routing
 

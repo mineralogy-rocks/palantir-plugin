@@ -9,34 +9,34 @@ Run this protocol in any of these cases:
 
 - The user says "log me in", "authenticate Palantir", "sign in to Palantir", "reconnect
   Palantir", or similar.
-- Any wrapper (`palantir_*.sh`) prints a line containing `[PALANTIR_LOGIN_REQUIRED]`.
+- The CLI (`palantir …`) prints a line containing `[PALANTIR_LOGIN_REQUIRED]`.
 - Before starting a long Palantir task, if `~/.config/palantir/credentials.json` is missing.
 - The user says "log me out" — skip to [Logout](#logout).
 
-## Step 1 — Resolve the login script path
+## Step 1 — Resolve the CLI path
 
 Use, in order:
 
-1. `${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir_login.sh` — set when the plugin is installed.
+1. `${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir` — set when the plugin is installed.
 2. If `CLAUDE_PLUGIN_DIR` is empty, ask the user for the plugin repo path and cache it for the
-   session, or try `$(git rev-parse --show-toplevel)/palantir-plugin/.claude/bin/palantir_login.sh`
+   session, or try `$(git rev-parse --show-toplevel)/palantir-plugin/.claude/bin/palantir`
    when the user is working inside the mineralogy-rocks monorepo.
 
 Do NOT guess paths silently. If resolution fails, tell the user once and stop.
 
 ## Step 2 — Check the API URL
 
-The script needs `PALANTIR_API_URL` in the environment unless credentials already exist. If the
+The CLI needs `PALANTIR_API_URL` in the environment unless credentials already exist. If the
 user has not set it, ask them for the base URL (e.g. `http://palantir.local:81` for local dev)
 and pass it as an env var on the invocation — do not rely on their shell profile.
 
 ## Step 3 — Run login in the background
 
-Invoke the login script with the Bash tool and `run_in_background: true`. Example:
+Invoke the CLI with the Bash tool and `run_in_background: true`. Example:
 
 ```bash
 PALANTIR_API_URL=http://palantir.local:81 \
-  "${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir_login.sh"
+  "${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir" login
 ```
 
 The script runs three phases:
@@ -73,20 +73,20 @@ Keep polling the background task's output. Exit the wait loop on any of:
 
 ## Step 6 — Retry the triggering operation
 
-If an earlier wrapper call surfaced `[PALANTIR_LOGIN_REQUIRED]`, re-run that exact call now.
+If an earlier CLI call surfaced `[PALANTIR_LOGIN_REQUIRED]`, re-run that exact call now.
 If the user invoked Auth Protocol directly ("log me in"), stop here — the task is done.
 
 ## Logout
 
-When the user asks to log out, run `${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir_logout.sh` in the
-foreground (this one is on the `ask` permission list, which is intentional — logout is
+When the user asks to log out, run `${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir logout` in the
+foreground (this subcommand is on the `ask` permission list, which is intentional — logout is
 destructive because it revokes tokens). Confirm once to the user after completion.
 
 ## Things to avoid
 
-- Do not print raw script stdout to the user — the script is chatty. Extract only the URL and
+- Do not print raw CLI stdout to the user — the login flow is chatty. Extract only the URL and
   status markers.
-- Do not move `palantir_login.sh` to the `ask` list and ask the user to approve each call;
+- Do not move `palantir login` to the `ask` list and ask the user to approve each call;
   it is already on `allow` so Claude can trigger it on their behalf.
 - Do not repeatedly poll the creds file as a sole progress signal — rely on the markers, and
   use the creds file only as a final sanity check.
