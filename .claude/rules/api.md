@@ -96,6 +96,25 @@ Logout stays on the `ask` permission list because it revokes tokens.
 "${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir" logout    # asks — user confirms each time
 ```
 
+### Permissions
+
+Claude Code plugins cannot ship a `permissions` block that gets merged into the user's settings
+(the plugin manifest only supports `agent` and `subagentStatusLine` at the root `settings.json`,
+and nested `.claude/settings.json` inside a plugin is not loaded). Users install permissions
+explicitly via:
+
+```bash
+"${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir" perms install              # writes ~/.claude/settings.json
+"${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir" perms install --scope project
+"${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir" perms install --dry-run
+"${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir" perms status
+"${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir" perms uninstall
+```
+
+The installer is idempotent — re-running adds nothing on second call. It writes three pattern
+variants per verb (`${CLAUDE_PLUGIN_DIR}/...`, absolute path, bare `palantir`) so the allowlist
+matches whichever form Claude Code's permission checker sees. `logout` stays on the `ask` list.
+
 ## Entry Kinds
 `decision` | `finding` | `error` | `pattern` | `note` | `review` | `machine-plan`
 

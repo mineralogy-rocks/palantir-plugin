@@ -21,11 +21,17 @@ docker-compose up -d
 claude plugin install github:mineralogy-rocks/palantir-plugin
 export PALANTIR_API_URL=https://palantir.example.com
 "${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir" login
+"${CLAUDE_PLUGIN_DIR}/.claude/bin/palantir" perms install
 ```
 
 That's it. Login registers an OAuth2 client, opens your browser for GitHub auth,
 and stores bearer + refresh tokens at `~/.config/palantir/credentials.json` (mode 600).
 Re-running login reuses the registered client — no duplicate client rows.
+
+`perms install` appends a managed allow/ask block to `~/.claude/settings.json` so
+Claude Code doesn't prompt on every CLI call. It's idempotent (safe to re-run) and
+scope-aware (`--scope project|local`). Run `perms status` to see what's installed
+and `perms uninstall` to remove it.
 
 For local development/testing without installing:
 
@@ -52,8 +58,9 @@ All Palantir operations go through a single CLI at `${CLAUDE_PLUGIN_DIR}/.claude
 that calls the REST API directly using a bearer token refreshed automatically on expiry. Any
 agent (Claude Code, Codex, Gemini, …) can invoke it with the same credentials.
 
-When a plan is approved in `/plan` mode, an async hook sends a deferred reminder
-to save the plan to Palantir during a natural pause — implementation starts immediately.
+When a plan is approved in `/plan` mode, an async hook fires `claude -p` in the
+background to auto-save the plan via the palantir skill's Plan Protocol — the
+parent session is never interrupted and the plan lands in Palantir seconds later.
 
 ## Skill
 
@@ -74,16 +81,15 @@ The skill routes by intent:
 
 | Event | Matcher | What it does |
 |-------|---------|-------------|
-| **PostToolUse** | `ExitPlanMode` | Async deferred reminder to save the approved plan to Palantir |
+| **PostToolUse** | `ExitPlanMode` | Fires `async: true`; runs `claude -p` in the background so a sub-agent invokes the palantir skill's Plan Protocol on the approved plan. Emits an OS notification at start and at completion (success or failure). No interruption to the parent session. Set `PALANTIR_HOOK_NOTIFY=0` to silence notifications. |
 
 ## Plugin structure
 
 ```
 .claude-plugin/
-  plugin.json                          # Plugin manifest (v3.0.0)
+  plugin.json                          # Plugin manifest
   marketplace.json                     # Marketplace listing
 .claude/
-  settings.json                        # Bash permission allowlist for subcommands
   skills/palantir/
     SKILL.md                           # Routing + atomization rules + quality checklist
     references/
@@ -94,6 +100,8 @@ The skill routes by intent:
       auth-protocol.md                 # Login lifecycle (PKCE flow, token refresh, logout)
   hooks/
     hooks.json                         # Async hook (PostToolUse on ExitPlanMode)
+    on_plan_approved.sh                # Bash launcher — redirects output to log, execs Python
+    _plan_auto_save.py                 # Plumbing — extracts plan from payload, runs claude -p
   rules/
     atomize.md                         # Shared atomization rules
     api.md                             # CLI command reference
@@ -104,6 +112,9 @@ The skill routes by intent:
     _auth.py                           # Credentials, token refresh, authed HTTP
     _common.py                         # Output formatting and shared helpers
 ```
+
+Permissions live in the user's `~/.claude/settings.json`, not in the plugin — install via
+`palantir perms install`. See [Install + Login](#install--login).
 
 ## How it works
 
@@ -124,8 +135,9 @@ merged via Reciprocal Rank Fusion.
 
 ## Manual hook setup (without the plugin)
 
-If you want plan persistence without installing the full plugin, add to your
-project's `.claude/settings.local.json`:
+The plugin already wires the ExitPlanMode hook on install. If you want plan
+auto-save without the full plugin, point your `.claude/settings.local.json` at
+a checkout of `on_plan_approved.sh`:
 
 ```json
 {
@@ -136,8 +148,8 @@ project's `.claude/settings.local.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "sleep 5 && echo 'Plan approved. Invoke the palantir skill to save it during a natural pause.' >&2 && exit 2",
-            "asyncRewake": true
+            "command": "/abs/path/to/palantir-plugin/.claude/hooks/on_plan_approved.sh",
+            "async": true
           }
         ]
       }
@@ -146,21 +158,25 @@ project's `.claude/settings.local.json`:
 }
 ```
 
-The hook runs in the background (`asyncRewake`). After 5 seconds it exits with
-code 2, which wakes Claude with a system reminder. By then the agent is already
-implementing and treats the save as a deferred task.
+`async: true` runs the hook fire-and-forget — no wake-up, no interruption. The
+script reads the hook payload on stdin, extracts the approved plan, and launches
+`claude -p` in the background so a sub-agent runs the palantir skill's Plan
+Protocol. Logs at `$TMPDIR/palantir-plan-hook.log`.
 
 ## Changes from v2
 
 - **Unified CLI**: Replaced the MCP server dependency (and, in v3.1, the seven per-domain bash
   wrappers) with a single `palantir` CLI covering entry / task / plan / search / tag / login /
-  logout. Any agent (Claude Code, Codex, Gemini, …) can invoke it directly.
+  logout / perms. Any agent (Claude Code, Codex, Gemini, …) can invoke it directly.
 - **No MCP server**: Removed `palantir-mcp` container from the Palantir stack — one fewer
   service, ~30x fewer tool-surface tokens.
 - **Auto token refresh**: `_auth.py` refreshes the bearer token on 401 transparently.
-- **Permission allowlist**: `settings.json` pre-approves subcommands; `logout` still prompts.
-- **Version**: 3.1.0 (breaking — per-domain `.sh` scripts removed; settings.json / skill / rules
-  updated to use `palantir <subcommand>`).
+- **Managed permission install**: `palantir perms install` writes the allow/ask block into
+  the user's `~/.claude/settings.json` (idempotent). Plugin-shipped `.claude/settings.json`
+  is not loaded by Claude Code, so the installer is the supported path.
+- **True background plan auto-save**: ExitPlanMode hook uses `async: true` + `claude -p` to
+  run the palantir skill's Plan Protocol in a headless sub-agent. Previous behavior
+  (`asyncRewake: true` + reminder) is replaced — parent session is never woken.
 
 ## License
 
