@@ -24,19 +24,16 @@ Use, in order:
 
 Do NOT guess paths silently. If resolution fails, tell the user once and stop.
 
-## Step 2 — Check the API URL
+## Step 2 — Run login in the background
 
-The CLI needs `MAVKA_API_URL` in the environment unless credentials already exist. If the
-user has not set it, ask them for the base URL (e.g. `http://mavka.local:81` for local dev)
-and pass it as an env var on the invocation — do not rely on their shell profile.
-
-## Step 3 — Run login in the background
+The CLI resolves the API URL itself: env `MAVKA_API_URL` > stored creds > default
+`http://mavka.local:81`. Do not pass it inline unless the user explicitly asks for a one-off
+override.
 
 Invoke the CLI with the Bash tool and `run_in_background: true`. Example:
 
 ```bash
-MAVKA_API_URL=http://mavka.local:81 \
-  "${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" login
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" login
 ```
 
 The script runs three phases:
@@ -46,7 +43,7 @@ The script runs three phases:
    listener until the browser callback arrives.
 3. Exchanges the code for tokens, writes credentials, prints identity.
 
-## Step 4 — Surface the authorization URL
+## Step 3 — Surface the authorization URL
 
 Poll the background task's stdout. As soon as you see a line starting with
 `MAVKA_AUTH_URL: `, extract the URL and show it to the user in a single short message:
@@ -59,7 +56,7 @@ Poll the background task's stdout. As soon as you see a line starting with
 
 Do not show the rest of the script's stdout — it is noisy. Only the URL matters to the user.
 
-## Step 5 — Wait for completion
+## Step 4 — Wait for completion
 
 Keep polling the background task's output. Exit the wait loop on any of:
 
@@ -71,7 +68,7 @@ Keep polling the background task's output. Exit the wait loop on any of:
   a generic failure and show the last few lines of stderr.
 - A timeout of 3 minutes — tell the user the auth flow timed out and ask whether to retry.
 
-## Step 6 — Retry the triggering operation
+## Step 5 — Retry the triggering operation
 
 If an earlier CLI call surfaced `[MAVKA_LOGIN_REQUIRED]`, re-run that exact call now.
 If the user invoked Auth Protocol directly ("log me in"), stop here — the task is done.

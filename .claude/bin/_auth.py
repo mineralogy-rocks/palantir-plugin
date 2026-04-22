@@ -18,6 +18,9 @@ import urllib.request
 from typing import Any
 
 
+DEFAULT_API_URL = "http://mavka.local:81"
+
+
 class LoginRequired(Exception):
 	"""Raised when the user must (re-)run `mavka login`."""
 
@@ -98,15 +101,12 @@ def load_api_url() -> str:
 		return url.rstrip("/")
 	try:
 		creds = load_credentials()
-	except LoginRequired as exc:
-		raise LoginRequired(
-			"MAVKA_API_URL is not set and no credentials found. "
-			"Invoke the mavka skill to log in."
-		) from exc
-	url = creds.get("api_url")
-	if not url:
-		raise LoginRequired("credentials.json missing api_url. Invoke the mavka skill to log in.")
-	return url.rstrip("/")
+		stored = creds.get("api_url")
+		if stored:
+			return stored.rstrip("/")
+	except LoginRequired:
+		pass
+	return DEFAULT_API_URL
 
 
 def _http(method: str, url: str, *, headers: dict[str, str] | None = None,

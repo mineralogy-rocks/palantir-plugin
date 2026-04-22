@@ -374,22 +374,7 @@ def _load_or_register_client(api_url: str) -> dict[str, Any]:
 
 
 def _resolve_api_url() -> str:
-	url = os.environ.get("MAVKA_API_URL")
-	if url:
-		return url.rstrip("/")
-	try:
-		creds = _auth.load_credentials()
-		if creds.get("api_url"):
-			return creds["api_url"].rstrip("/")
-	except _auth.LoginRequired:
-		pass
-	try:
-		url = input("Mavka API URL (e.g. https://mavka.example.com): ").strip()
-	except EOFError:
-		_fail_login("No API URL provided and no TTY to prompt.")
-	if not url:
-		_fail_login("No API URL provided.")
-	return url.rstrip("/")
+	return _auth.load_api_url()
 
 
 def cmd_login(args: argparse.Namespace) -> None:
