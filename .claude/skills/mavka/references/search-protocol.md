@@ -14,14 +14,14 @@ Choose the search mode based on the query (see `../../rules/api.md` for details)
 - **`content`**: When looking for specific implementation details or code-level context.
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" search knowledge \
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" search knowledge \
   --query "N+1 query on indicators" --mode hybrid --limit 5
 ```
 
 Also search tasks if the query might relate to tracked work:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" search tasks --query "TAU migration" --limit 5
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" search tasks --query "TAU migration" --limit 5
 ```
 
 ## Step 2 — Follow links
@@ -29,19 +29,19 @@ Also search tasks if the query might relate to tracked work:
 For results with a `group_id`, consider fetching siblings to get the full atomization batch:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" entry list --group-id <group_id>
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" entry list --group-id <group_id>
 ```
 
 For results with a `task_id`, fetch the task to show work context:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" task get <task_id>
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" task get <task_id>
 ```
 
 For individual entries with related IDs, fetch them:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" entry get <id>
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" entry get <id>
 ```
 
 Limit link-following to avoid noise: max 2 group fetches, 3 related entry fetches, 3 task fetches.
@@ -94,7 +94,7 @@ sections or bullet points per entry:
 If nothing was found:
 
 ```markdown
-No entries found in Palantir for "query". Consider checking:
+No entries found in Mavka for "query". Consider checking:
 - Different search terms or synonyms
 - Broader tags
 - Whether this knowledge has been stored yet

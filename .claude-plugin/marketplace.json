@@ -10,7 +10,7 @@
   },
   "plugins": [
     {
-      "name": "palantir",
+      "name": "mavka",
       "source": "./",
       "description": "Persistent knowledge system — stores decisions, findings, errors, and patterns with semantic search and enforced atomization across sessions",
       "version": "3.1.5",

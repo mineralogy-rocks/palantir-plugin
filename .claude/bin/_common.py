@@ -1,4 +1,4 @@
-"""Shared utilities for the Palantir CLI."""
+"""Shared utilities for the Mavka CLI."""
 
 from __future__ import annotations
 

@@ -1,7 +1,7 @@
-"""Palantir credentials store + authed HTTP helper.
+"""Mavka credentials store + authed HTTP helper.
 
-Stores credentials and client info at ~/.config/palantir/ (override via
-PALANTIR_CONFIG_DIR). Handles OAuth2 refresh-token rotation and retries a
+Stores credentials and client info at ~/.config/mavka/ (override via
+MAVKA_CONFIG_DIR). Handles OAuth2 refresh-token rotation and retries a
 single 401 after refreshing. All functions raise LoginRequired when the
 caller must re-authenticate.
 """
@@ -19,11 +19,11 @@ from typing import Any
 
 
 class LoginRequired(Exception):
-	"""Raised when the user must (re-)run `palantir login`."""
+	"""Raised when the user must (re-)run `mavka login`."""
 
 
 def config_dir() -> str:
-	return os.environ.get("PALANTIR_CONFIG_DIR", os.path.expanduser("~/.config/palantir"))
+	return os.environ.get("MAVKA_CONFIG_DIR", os.path.expanduser("~/.config/mavka"))
 
 
 def creds_path() -> str:
@@ -67,7 +67,7 @@ def _atomic_write_json(path: str, data: dict[str, Any]) -> None:
 def load_credentials() -> dict[str, Any]:
 	path = creds_path()
 	if not os.path.isfile(path):
-		raise LoginRequired("Not logged in. Invoke the palantir skill to log in.")
+		raise LoginRequired("Not logged in. Invoke the mavka skill to log in.")
 	try:
 		return _read_json(path)
 	except (OSError, json.JSONDecodeError) as exc:
@@ -77,7 +77,7 @@ def load_credentials() -> dict[str, Any]:
 def load_client() -> dict[str, Any]:
 	path = client_path()
 	if not os.path.isfile(path):
-		raise LoginRequired("client.json missing. Invoke the palantir skill to log in.")
+		raise LoginRequired("client.json missing. Invoke the mavka skill to log in.")
 	try:
 		return _read_json(path)
 	except (OSError, json.JSONDecodeError) as exc:
@@ -93,19 +93,19 @@ def save_client(data: dict[str, Any]) -> None:
 
 
 def load_api_url() -> str:
-	url = os.environ.get("PALANTIR_API_URL")
+	url = os.environ.get("MAVKA_API_URL")
 	if url:
 		return url.rstrip("/")
 	try:
 		creds = load_credentials()
 	except LoginRequired as exc:
 		raise LoginRequired(
-			"PALANTIR_API_URL is not set and no credentials found. "
-			"Invoke the palantir skill to log in."
+			"MAVKA_API_URL is not set and no credentials found. "
+			"Invoke the mavka skill to log in."
 		) from exc
 	url = creds.get("api_url")
 	if not url:
-		raise LoginRequired("credentials.json missing api_url. Invoke the palantir skill to log in.")
+		raise LoginRequired("credentials.json missing api_url. Invoke the mavka skill to log in.")
 	return url.rstrip("/")
 
 
@@ -126,7 +126,7 @@ def refresh() -> None:
 	client = load_client()
 	refresh_token = creds.get("refresh_token")
 	if not refresh_token:
-		raise LoginRequired("No refresh token. Invoke the palantir skill to log in.")
+		raise LoginRequired("No refresh token. Invoke the mavka skill to log in.")
 	api_url = load_api_url()
 	form = urllib.parse.urlencode({
 		"grant_type": "refresh_token",
@@ -163,7 +163,7 @@ def access_token() -> str:
 	creds = load_credentials()
 	tok = creds.get("access_token")
 	if not tok:
-		raise LoginRequired("credentials.json missing access_token. Invoke the palantir skill to log in.")
+		raise LoginRequired("credentials.json missing access_token. Invoke the mavka skill to log in.")
 	expires_at = int(creds.get("expires_at", 0))
 	if int(time.time()) + 30 >= expires_at:
 		refresh()
@@ -205,7 +205,7 @@ def request(method: str, path: str, *, json_body: Any = None,
 		tok = load_credentials()["access_token"]
 		code, body = _do(tok)
 		if code == 401:
-			raise LoginRequired(f"Session revoked. Invoke the palantir skill to log in. Body: {body.decode(errors='replace')}")
+			raise LoginRequired(f"Session revoked. Invoke the mavka skill to log in. Body: {body.decode(errors='replace')}")
 	if code >= 400:
 		raise RuntimeError(f"HTTP {code}: {body.decode(errors='replace')}")
 	if not body:

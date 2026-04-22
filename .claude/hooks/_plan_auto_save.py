@@ -14,10 +14,10 @@ Flow on every plan approval:
 4. Emit `hookSpecificOutput.additionalContext` JSON on stdout — that is
    the documented channel for a PostToolUse hook to inject a system
    reminder into the main session's next turn. The reminder instructs
-   the main session's Claude to invoke the palantir skill's Plan
+   the main session's Claude to invoke the mavka skill's Plan
    Protocol on the plan, atomize it, and save it with the supplied
    `dedupe_key` (so retries upsert cleanly).
-5. Log progress to `$TMPDIR/palantir-plan-hook.log` for diagnosis.
+5. Log progress to `$TMPDIR/mavka-plan-hook.log` for diagnosis.
 
 The hook itself is synchronous, returns in <100ms, and never blocks
 Claude Code. All failure paths log and exit 0 so an error here can never
@@ -33,7 +33,7 @@ import sys
 from datetime import datetime, timezone
 
 _TMP = os.path.normpath(os.environ.get("TMPDIR", "/tmp"))
-LOG_PATH = os.path.join(_TMP, "palantir-plan-hook.log")
+LOG_PATH = os.path.join(_TMP, "mavka-plan-hook.log")
 
 
 def _now() -> str:
@@ -70,7 +70,7 @@ def _plan_title(plan: str) -> str:
 
 
 def _write_temp_plan(plan: str, sha12: str) -> str:
-	path = os.path.join(_TMP, f"palantir-plan-{sha12}.md")
+	path = os.path.join(_TMP, f"mavka-plan-{sha12}.md")
 	with open(path, "w", encoding="utf-8") as f:
 		f.write(plan)
 	return path
@@ -79,26 +79,26 @@ def _write_temp_plan(plan: str, sha12: str) -> str:
 def _instructions(temp_path: str, dedupe_key: str, title: str) -> str:
 	"""The system reminder injected into the main session's next turn."""
 	return (
-		"🧠 Palantir plan auto-save hook fired.\n"
+		"🧠 Mavka plan auto-save hook fired.\n"
 		"\n"
-		"A plan was just approved and must be saved to Palantir as your next "
+		"A plan was just approved and must be saved to Mavka as your next "
 		"action — before continuing the user's main task. Do this now:\n"
 		"\n"
-		f"1. Print exactly this line to the user: Saving approved plan to Palantir… (title: {title!r})\n"
-		f"2. Invoke the `palantir` skill and follow its Plan Protocol "
-		f"(`.claude/skills/palantir/references/plan-protocol.md`). Read the approved "
+		f"1. Print exactly this line to the user: Saving approved plan to Mavka… (title: {title!r})\n"
+		f"2. Invoke the `mavka` skill and follow its Plan Protocol "
+		f"(`.claude/skills/mavka/references/plan-protocol.md`). Read the approved "
 		f"plan from this path: {temp_path}\n"
 		f"3. Atomize the plan into discrete entries per `.claude/rules/atomize.md` "
 		f"(one topic per entry, each with its own BLUF and kind). Do not save a "
 		f"single monolithic entry.\n"
-		f"4. Save via `palantir plan save` with these flags so the save is "
+		f"4. Save via `mavka plan save` with these flags so the save is "
 		f"idempotent and tagged:\n"
 		f"   --dedupe-key {dedupe_key}\n"
 		f"   --tag auto-saved\n"
 		f"5. After the save, report one line to the user with the plan ID and "
 		f"entry count. Then resume whatever the user was doing.\n"
 		"\n"
-		"Do not ask the user for permission; the Palantir CLI is already on "
+		"Do not ask the user for permission; the Mavka CLI is already on "
 		"their allowlist. Do not re-atomize if you have already saved this exact "
 		"dedupe_key in this session."
 	)

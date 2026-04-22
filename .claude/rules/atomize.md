@@ -1,6 +1,6 @@
 # Atomization Rules
 
-Shared rules for breaking content into discrete knowledge entries. Referenced by the PreCompact hook, the palantir skill, and all write operations.
+Shared rules for breaking content into discrete knowledge entries. Referenced by the PreCompact hook, the mavka skill, and all write operations.
 
 ## Entry Structure
 

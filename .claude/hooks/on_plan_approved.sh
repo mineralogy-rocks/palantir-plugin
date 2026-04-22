@@ -6,6 +6,6 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG="${TMPDIR:-/tmp}/palantir-plan-hook.log"
+LOG="${TMPDIR:-/tmp}/mavka-plan-hook.log"
 
 exec python3 "$HERE/_plan_auto_save.py" 2>> "$LOG"

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Palantir CLI — single entrypoint for all API operations.
+"""Mavka CLI — single entrypoint for all API operations.
 
-Invoke via the `palantir` launcher (`palantir <group> <verb> [flags]`) or
+Invoke via the `mavka` launcher (`mavka <group> <verb> [flags]`) or
 directly: `python3 cli.py <group> <verb> [flags]`. The .sh wrappers are gone;
 everything lives here.
 """
@@ -43,7 +43,7 @@ def _print_json(obj: Any) -> None:
 
 
 def _login_required(msg: str) -> None:
-	sys.stderr.write(f"Error [PALANTIR_LOGIN_REQUIRED]: {msg}\n")
+	sys.stderr.write(f"Error [MAVKA_LOGIN_REQUIRED]: {msg}\n")
 
 
 # --------------------------------------------------------------------------
@@ -263,7 +263,7 @@ REDIRECT_URI_POOL = [
 
 
 def _fail_login(msg: str) -> None:
-	print(f"PALANTIR_LOGIN_ERROR: {msg}")
+	print(f"MAVKA_LOGIN_ERROR: {msg}")
 	print(f"Error: {msg}", file=sys.stderr)
 	raise SystemExit(1)
 
@@ -334,12 +334,12 @@ def _await_callback(port: int, timeout: float = 300.0) -> dict[str, str]:
 
 
 def _register_client(api_url: str) -> dict[str, Any]:
-	print("Registering new OAuth2 client with Palantir...")
+	print("Registering new OAuth2 client with Mavka...")
 	body = {
-		"client_name": "palantir-plugin",
+		"client_name": "mavka-plugin",
 		"redirect_uris": REDIRECT_URI_POOL,
 		"grant_types": ["authorization_code", "refresh_token"],
-		"scope": "palantir:read palantir:write",
+		"scope": "mavka:read mavka:write",
 		"token_endpoint_auth_method": "client_secret_post",
 	}
 	code, resp = _auth.unauth_request("POST", f"{api_url}/oauth/register", json_body=body)
@@ -374,7 +374,7 @@ def _load_or_register_client(api_url: str) -> dict[str, Any]:
 
 
 def _resolve_api_url() -> str:
-	url = os.environ.get("PALANTIR_API_URL")
+	url = os.environ.get("MAVKA_API_URL")
 	if url:
 		return url.rstrip("/")
 	try:
@@ -384,7 +384,7 @@ def _resolve_api_url() -> str:
 	except _auth.LoginRequired:
 		pass
 	try:
-		url = input("Palantir API URL (e.g. https://palantir.example.com): ").strip()
+		url = input("Mavka API URL (e.g. https://mavka.example.com): ").strip()
 	except EOFError:
 		_fail_login("No API URL provided and no TTY to prompt.")
 	if not url:
@@ -410,14 +410,14 @@ def cmd_login(args: argparse.Namespace) -> None:
 		f"{api_url}/oauth/authorize?response_type=code"
 		f"&client_id={client['client_id']}"
 		f"&redirect_uri={redirect_uri}"
-		f"&scope=palantir%3Aread%20palantir%3Awrite"
+		f"&scope=mavka%3Aread%20mavka%3Awrite"
 		f"&state={state}"
 		f"&code_challenge={challenge}"
 		f"&code_challenge_method=S256"
 	)
 
 	# Machine-readable marker for the skill (picked up from background stdout).
-	print(f"PALANTIR_AUTH_URL: {auth_url}")
+	print(f"MAVKA_AUTH_URL: {auth_url}")
 	print()
 	print("Opening authorization URL in your browser...")
 	print()
@@ -456,7 +456,7 @@ def cmd_login(args: argparse.Namespace) -> None:
 		"access_token": tok["access_token"],
 		"refresh_token": tok.get("refresh_token", ""),
 		"token_type": tok.get("token_type", "Bearer"),
-		"scope": tok.get("scope", "palantir:read palantir:write"),
+		"scope": tok.get("scope", "mavka:read mavka:write"),
 		"expires_at": now + int(tok.get("expires_in", 3600)),
 		"issued_at": now,
 		"api_url": api_url,
@@ -470,12 +470,12 @@ def cmd_login(args: argparse.Namespace) -> None:
 	except Exception:
 		login = "unknown"
 
-	print(f"PALANTIR_LOGIN_OK: {login}")
+	print(f"MAVKA_LOGIN_OK: {login}")
 	print()
 	print(f"Logged in as: {login}")
 	print(f"Credentials stored at: {_auth.creds_path()} (mode 600)")
 	print()
-	print(f"Set PALANTIR_API_URL={api_url} in your shell profile to skip the prompt next time.")
+	print(f"Set MAVKA_API_URL={api_url} in your shell profile to skip the prompt next time.")
 
 
 def cmd_logout(args: argparse.Namespace) -> None:
@@ -504,7 +504,7 @@ def cmd_logout(args: argparse.Namespace) -> None:
 	except OSError:
 		pass
 	print("Logged out. Credentials deleted.")
-	print("client.json retained — re-running `palantir login` will reuse the registered client.")
+	print("client.json retained — re-running `mavka login` will reuse the registered client.")
 
 
 # --------------------------------------------------------------------------
@@ -517,20 +517,20 @@ _PERMS_ASK_VERB = "logout"
 
 
 def _plugin_bin_path() -> str:
-	# cli.py lives at <plugin>/.claude/bin/cli.py — resolve the palantir launcher.
-	return os.path.abspath(os.path.join(_HERE, "palantir"))
+	# cli.py lives at <plugin>/.claude/bin/cli.py — resolve the mavka launcher.
+	return os.path.abspath(os.path.join(_HERE, "mavka"))
 
 
 def _perms_patterns() -> tuple[list[str], list[str]]:
 	"""Return (allow, ask) matcher sets covering the three plausible invocation forms:
 
-	1. ${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir … — if matchers expand plugin vars
-	2. /abs/path/.claude/bin/palantir …            — concrete path for this machine
-	3. palantir …                                  — if .claude/bin/ is on PATH
+	1. ${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka … — if matchers expand plugin vars
+	2. /abs/path/.claude/bin/mavka …            — concrete path for this machine
+	3. mavka …                                  — if .claude/bin/ is on PATH
 	"""
 	abs_bin = _plugin_bin_path()
-	var_bin = "${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir"
-	bare_bin = "palantir"
+	var_bin = "${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka"
+	bare_bin = "mavka"
 	allow: list[str] = []
 	for group in _PERMS_GROUPS:
 		for prefix in (var_bin, abs_bin, bare_bin):
@@ -554,7 +554,7 @@ def _perms_target(scope: str) -> str:
 def _atomic_write_settings(path: str, data: dict[str, Any]) -> None:
 	parent = os.path.dirname(path) or "."
 	os.makedirs(parent, exist_ok=True)
-	fd, tmp = tempfile.mkstemp(dir=parent, prefix=".tmp_palantir_", suffix=".json")
+	fd, tmp = tempfile.mkstemp(dir=parent, prefix=".tmp_mavka_", suffix=".json")
 	try:
 		with os.fdopen(fd, "w") as f:
 			json.dump(data, f, indent=2)
@@ -593,7 +593,7 @@ def cmd_perms_install(args: argparse.Namespace) -> None:
 	add_ask = [p for p in want_ask if p not in cur_ask_set]
 
 	if not add_allow and not add_ask:
-		print(f"PALANTIR_PERMISSIONS_ALREADY_INSTALLED: {target}")
+		print(f"MAVKA_PERMISSIONS_ALREADY_INSTALLED: {target}")
 		return
 
 	if args.dry_run:
@@ -605,7 +605,7 @@ def cmd_perms_install(args: argparse.Namespace) -> None:
 	perms["ask"] = cur_ask + add_ask
 	_atomic_write_settings(target, existing)
 	print(
-		f"PALANTIR_PERMISSIONS_INSTALLED: {target} "
+		f"MAVKA_PERMISSIONS_INSTALLED: {target} "
 		f"(+{len(add_allow)} allow, +{len(add_ask)} ask)"
 	)
 
@@ -614,7 +614,7 @@ def cmd_perms_uninstall(args: argparse.Namespace) -> None:
 	target = _perms_target(args.scope)
 	want_allow, want_ask = _perms_patterns()
 	if not os.path.isfile(target):
-		print(f"PALANTIR_PERMISSIONS_NOT_INSTALLED: {target}")
+		print(f"MAVKA_PERMISSIONS_NOT_INSTALLED: {target}")
 		return
 
 	try:
@@ -634,7 +634,7 @@ def cmd_perms_uninstall(args: argparse.Namespace) -> None:
 		len(perms.get("ask", []) or []) - len(new_ask)
 	)
 	if not removed:
-		print(f"PALANTIR_PERMISSIONS_NOT_INSTALLED: {target}")
+		print(f"MAVKA_PERMISSIONS_NOT_INSTALLED: {target}")
 		return
 
 	if args.dry_run:
@@ -650,7 +650,7 @@ def cmd_perms_uninstall(args: argparse.Namespace) -> None:
 	if not perms:
 		existing.pop("permissions", None)
 	_atomic_write_settings(target, existing)
-	print(f"PALANTIR_PERMISSIONS_UNINSTALLED: {target} (-{removed})")
+	print(f"MAVKA_PERMISSIONS_UNINSTALLED: {target} (-{removed})")
 
 
 def cmd_perms_status(args: argparse.Namespace) -> None:
@@ -690,8 +690,8 @@ SEARCH_MODES = ["hybrid", "content", "bluf"]
 
 def _build_parser() -> argparse.ArgumentParser:
 	p = argparse.ArgumentParser(
-		prog="palantir",
-		description="Palantir persistent knowledge system CLI.",
+		prog="mavka",
+		description="Mavka persistent knowledge system CLI.",
 	)
 	groups = p.add_subparsers(dest="group", required=True, metavar="<group>")
 
@@ -830,7 +830,7 @@ def _build_parser() -> argparse.ArgumentParser:
 	logout = groups.add_parser("logout", help="Revoke tokens and clear credentials")
 	logout.set_defaults(func=cmd_logout)
 
-	# perms — install/uninstall/status Claude Code permissions for the Palantir CLI
+	# perms — install/uninstall/status Claude Code permissions for the Mavka CLI
 	perms = groups.add_parser(
 		"perms",
 		help="Manage Claude Code permissions (install, uninstall, status)",
@@ -845,13 +845,13 @@ def _build_parser() -> argparse.ArgumentParser:
 			help="Where to install permissions (default: user → ~/.claude/settings.json)",
 		)
 
-	pi = perms_sub.add_parser("install", help="Install Claude Code permissions for the Palantir CLI")
+	pi = perms_sub.add_parser("install", help="Install Claude Code permissions for the Mavka CLI")
 	_add_scope(pi)
 	pi.add_argument("--dry-run", action="store_true", help="Print diff without writing")
 	pi.add_argument("--force", action="store_true", help="Overwrite unreadable settings.json")
 	pi.set_defaults(func=cmd_perms_install)
 
-	pu = perms_sub.add_parser("uninstall", help="Remove managed Palantir CLI permissions")
+	pu = perms_sub.add_parser("uninstall", help="Remove managed Mavka CLI permissions")
 	_add_scope(pu)
 	pu.add_argument("--dry-run", action="store_true")
 	pu.set_defaults(func=cmd_perms_uninstall)

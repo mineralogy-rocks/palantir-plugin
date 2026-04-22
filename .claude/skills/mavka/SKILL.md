@@ -1,26 +1,26 @@
 ---
-name: palantir
+name: mavka
 description: >-
-  Middleware for the Palantir persistent knowledge system. Invoke this skill whenever the user
-  wants to store, search, recall, or manage knowledge in Palantir — including saving decisions,
+  Middleware for the Mavka persistent knowledge system. Invoke this skill whenever the user
+  wants to store, search, recall, or manage knowledge in Mavka — including saving decisions,
   findings, errors, patterns, notes, plans, or tasks. Also invoke when the user says "remember
-  this", "store this", "save to Palantir", "log this", "what do we know about", "recall",
-  "search Palantir", or wants to persist an approved plan. Also invoke when the user wants to
-  log in or log out of Palantir, or when any wrapper prints `[PALANTIR_LOGIN_REQUIRED]` — the
-  skill owns the login lifecycle and runs `palantir login` on the user's behalf. This skill
+  this", "store this", "save to Mavka", "log this", "what do we know about", "recall",
+  "search Mavka", or wants to persist an approved plan. Also invoke when the user wants to
+  log in or log out of Mavka, or when any wrapper prints `[MAVKA_LOGIN_REQUIRED]` — the
+  skill owns the login lifecycle and runs `mavka login` on the user's behalf. This skill
   enforces atomization — breaking complex knowledge into discrete, standalone, individually-
-  searchable entries — before anything is written to Palantir. Use it even for simple
+  searchable entries — before anything is written to Mavka. Use it even for simple
   single-entry writes, because it ensures BLUF quality, correct kind classification, tag reuse,
   and duplicate prevention.
 ---
 
-# Palantir Middleware
+# Mavka Middleware
 
-You are the atomization layer between the agent and Palantir. Your job is to ensure every piece
-of knowledge written to Palantir is properly decomposed, classified, and deduplicated before
+You are the atomization layer between the agent and Mavka. Your job is to ensure every piece
+of knowledge written to Mavka is properly decomposed, classified, and deduplicated before
 submission.
 
-Palantir is a persistent knowledge system backed by PostgreSQL with pgvector. It stores entries
+Mavka is a persistent knowledge system backed by PostgreSQL with pgvector. It stores entries
 with OpenAI vector embeddings for semantic search. The three core entities are entries (knowledge
 atoms), plans (approved plans with atomized entries), and tasks (work containers grouping entries).
 
@@ -34,7 +34,7 @@ Read these before proceeding — they contain the detailed steps for each operat
 | `references/plan-protocol.md` | Saving approved plans with atomized `machine-plan` entries |
 | `references/search-protocol.md` | Searching, recalling, and presenting past knowledge |
 | `references/task-protocol.md` | Creating, updating, and enriching tasks |
-| `references/auth-protocol.md` | Logging in and out — triggered on `[PALANTIR_LOGIN_REQUIRED]` or direct user intent |
+| `references/auth-protocol.md` | Logging in and out — triggered on `[MAVKA_LOGIN_REQUIRED]` or direct user intent |
 
 Supporting rules (always loaded in context via the plugin):
 
@@ -45,9 +45,9 @@ Supporting rules (always loaded in context via the plugin):
 
 ## Transport
 
-All Palantir operations go through a single CLI at `${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir`.
-Always call `${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir tag list` before creating entries to reuse existing tags.
-Use `${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir entry create --stdin` for long content to avoid argv length limits.
+All Mavka operations go through a single CLI at `${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka`.
+Always call `${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka tag list` before creating entries to reuse existing tags.
+Use `${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka entry create --stdin` for long content to avoid argv length limits.
 
 ## Routing
 
@@ -59,11 +59,11 @@ Classify the user's intent, then **read the corresponding protocol file** before
 | Save an approved plan | **Plan Protocol** |
 | Search, recall, "what do we know about X" | **Search Protocol** |
 | Create/update/manage tasks | **Task Protocol** |
-| "log me in", "authenticate", or wrapper output contains `[PALANTIR_LOGIN_REQUIRED]` | **Auth Protocol** |
+| "log me in", "authenticate", or wrapper output contains `[MAVKA_LOGIN_REQUIRED]` | **Auth Protocol** |
 
 If the intent is ambiguous, ask the user to clarify before proceeding.
 
-When another protocol's wrapper call fails with `[PALANTIR_LOGIN_REQUIRED]`, first run the
+When another protocol's wrapper call fails with `[MAVKA_LOGIN_REQUIRED]`, first run the
 **Auth Protocol** to restore the session, then retry the original call.
 
 ---
@@ -71,7 +71,7 @@ When another protocol's wrapper call fails with `[PALANTIR_LOGIN_REQUIRED]`, fir
 ## Atomization Rules
 
 These rules are shared across the Write, Plan, and Task protocols. Every entry written to
-Palantir must satisfy all of these.
+Mavka must satisfy all of these.
 
 ### One topic per entry
 

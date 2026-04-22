@@ -1,8 +1,8 @@
-# Palantir API Reference
+# Mavka API Reference
 
-All Palantir operations go through a single CLI at `${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir`. Use
+All Mavka operations go through a single CLI at `${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka`. Use
 it exclusively — do not call the REST API directly with curl. Any agent (Claude Code, Codex,
-Gemini, etc.) can invoke the same CLI; credentials persist at `~/.config/palantir/credentials.json`
+Gemini, etc.) can invoke the same CLI; credentials persist at `~/.config/mavka/credentials.json`
 so one login covers every agent on the same machine.
 
 ## CLI Commands
@@ -11,19 +11,19 @@ so one login covers every agent on the same machine.
 
 ```bash
 # Always call before creating entries to reuse existing tags
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" tag list [--q <prefix>] [--limit <n>]
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" tag create --name <name>
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" tag list [--q <prefix>] [--limit <n>]
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" tag create --name <name>
 ```
 
 ### Search
 
 ```bash
 # Semantic search across knowledge entries
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" search knowledge \
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" search knowledge \
   --query <q> [--kind <k>] [--tag <name>]... [--mode hybrid|content|bluf] [--limit <n>] [--raw]
 
 # Search tasks by title
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" search tasks \
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" search tasks \
   --query <q> [--status <s>] [--tag <name>]... [--due-lte <d>] [--due-gte <d>] [--limit <n>] [--raw]
 ```
 
@@ -31,21 +31,21 @@ so one login covers every agent on the same machine.
 
 ```bash
 # Create a single entry
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" entry create \
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" entry create \
   --bluf <text> --content <text> [--kind <k>] [--tag <name>]... [--task-id <id>]
 
 # Create with long content via stdin (avoids argv length limits)
-echo "..." | "${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" entry create \
+echo "..." | "${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" entry create \
   --bluf <text> --stdin [--kind <k>] [--tag <name>]...
 
 # Bulk create from JSON file: {"entries":[{content,bluf,kind,tags},...]}
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" entry bulk --file <path>
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" entry bulk --file <path>
 
 # Get a single entry by ID
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" entry get <id>
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" entry get <id>
 
 # List entries with optional filters
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" entry list \
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" entry list \
   [--kind <k>] [--tag <name>]... [--plan-id <id>] [--task-id <id>] [--limit <n>] [--offset <n>]
 ```
 
@@ -53,73 +53,67 @@ echo "..." | "${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" entry create \
 
 ```bash
 # Save an approved plan with atomized entries
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" plan save \
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" plan save \
   --title <t> --content <text> --entries-file <path> [--tag <name>]... [--dedupe-key <k>]
 
 # Get a plan by ID
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" plan get <id>
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" plan get <id>
 
 # List plans
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" plan list [--query <q>] [--tag <name>]... [--limit <n>]
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" plan list [--query <q>] [--tag <name>]... [--limit <n>]
 ```
 
 ### Tasks
 
 ```bash
 # Create a task
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" task create \
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" task create \
   --title <t> [--status <s>] [--tag <name>]... [--due-date <d>]
 
 # Get a task by ID
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" task get <id>
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" task get <id>
 
 # Update a task
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" task update <id> \
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" task update <id> \
   [--status <s>] [--title <t>] [--tag <name>]... [--due-date <d>]
 
 # List tasks
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" task list \
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" task list \
   [--status <s>] [--tag <name>]... [--due-lte <d>] [--due-gte <d>] [--limit <n>]
 ```
 
 ### Auth
 
-Auth is handled by the palantir skill's **Auth Protocol** — do not prompt the user to run these
-commands. When any CLI call prints `[PALANTIR_LOGIN_REQUIRED]`, or when the user says "log me in",
-invoke the palantir skill and follow `references/auth-protocol.md`. The skill runs `palantir login`
+Auth is handled by the mavka skill's **Auth Protocol** — do not prompt the user to run these
+commands. When any CLI call prints `[MAVKA_LOGIN_REQUIRED]`, or when the user says "log me in",
+invoke the mavka skill and follow `references/auth-protocol.md`. The skill runs `mavka login`
 in the background on the user's behalf and surfaces only the authorization URL they need to click.
 Logout stays on the `ask` permission list because it revokes tokens.
 
 ```bash
 # Invoked by the skill, not by the user:
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" login     # allowed — run by the Auth Protocol
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" logout    # asks — user confirms each time
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" login     # allowed — run by the Auth Protocol
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" logout    # asks — user confirms each time
 ```
 
 ### Permissions
 
-The plugin ships its own `PreToolUse` hook that auto-approves any Bash call which is *only* a
-Palantir CLI invocation (bare `palantir`, `${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir`, or an
-absolute cache path), optionally preceded by a single `echo`/`cat`/`printf` through a pipe.
-Chains (`;`, `&&`), redirects (`<`, `>`), subshells (`$(…)`), backticks, and dangerous verbs
-(`sudo`, `rm`, `curl`, `wget`, `chmod`, `chown`, `kill`) all defer to Claude Code's normal
-permission flow. Effect: installing the plugin is enough — no settings.json edits are required to
-stop the prompts.
-
-If you prefer to bake entries into your `~/.claude/settings.json` as well (for example, to keep
-the allowlist visible), the CLI still offers an idempotent installer:
+Claude Code plugins cannot ship a `permissions` block that gets merged into the user's settings
+(the plugin manifest only supports `agent` and `subagentStatusLine` at the root `settings.json`,
+and nested `.claude/settings.json` inside a plugin is not loaded). Users install permissions
+explicitly via:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" perms install              # writes ~/.claude/settings.json
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" perms install --scope project
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" perms install --dry-run
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" perms status
-"${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" perms uninstall
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" perms install              # writes ~/.claude/settings.json
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" perms install --scope project
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" perms install --dry-run
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" perms status
+"${CLAUDE_PLUGIN_ROOT}/.claude/bin/mavka" perms uninstall
 ```
 
-The installer writes three pattern variants per verb (`${CLAUDE_PLUGIN_ROOT}/…`, absolute path,
-bare `palantir`) so the allowlist matches whichever form the permission checker sees. `logout`
-stays on the `ask` list in both the hook and the installer.
+The installer is idempotent — re-running adds nothing on second call. It writes three pattern
+variants per verb (`${CLAUDE_PLUGIN_ROOT}/...`, absolute path, bare `mavka`) so the allowlist
+matches whichever form Claude Code's permission checker sees. `logout` stays on the `ask` list.
 
 ## Entry Kinds
 `decision` | `finding` | `error` | `pattern` | `note` | `review` | `machine-plan`
@@ -133,19 +127,19 @@ stays on the `ask` list in both the hook and the installer.
 - `bluf` — BLUF embeddings only
 
 ## Environment Variables
-- `PALANTIR_API_URL` — API base URL (required if not stored in credentials.json)
-- `PALANTIR_CONFIG_DIR` — override default `~/.config/palantir`
+- `MAVKA_API_URL` — API base URL (required if not stored in credentials.json)
+- `MAVKA_CONFIG_DIR` — override default `~/.config/mavka`
 
 ## Agent-agnostic invocation
 
 Other agents can call the same CLI directly without the launcher:
 
 ```bash
-python3 "${PALANTIR_PLUGIN_DIR}/.claude/bin/cli.py" <group> <verb> [flags]
+python3 "${MAVKA_PLUGIN_DIR}/.claude/bin/cli.py" <group> <verb> [flags]
 ```
 
 Or, if `.claude/bin/` is on PATH:
 
 ```bash
-palantir <group> <verb> [flags]
+mavka <group> <verb> [flags]
 ```
