@@ -6,6 +6,7 @@ These rules apply to all sessions in projects connected to Palantir.
 
 | Component | Trigger | What it does |
 |-----------|---------|--------------|
+| **PreToolUse hook** | Every `Bash` tool call | Auto-approves Bash commands that invoke only the Palantir CLI (bare `palantir`, `${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir`, or an absolute cache-dir path), optionally fed by a safe reader (`echo`/`cat`/`printf`) through a single pipe. Everything else — chains, redirects, subshells, dangerous verbs, unrelated commands — defers to Claude Code's normal permission flow. Effect: no per-call permission prompts for Palantir skill invocations after the plugin is installed, no user settings edit required. |
 | **PreCompact hook** | Before context compression | Atomizes full session into discrete entries with BLUFs |
 | **PostToolUse hook** | After plan approval (ExitPlanMode) | Writes the approved plan to a temp file and returns `hookSpecificOutput.additionalContext` JSON that instructs the main session's Claude to invoke the palantir skill's Plan Protocol against that file, atomize, and save via `plan save` with an idempotent `dedupe_key`. The hook itself does no LLM work and no subprocess spawning; it is pure plumbing. Progress is logged to `$TMPDIR/palantir-plan-hook.log`. |
 | **palantir skill** | Manual or auto-invoked | Middleware for all Palantir operations — enforces atomization |

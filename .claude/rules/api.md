@@ -98,10 +98,16 @@ Logout stays on the `ask` permission list because it revokes tokens.
 
 ### Permissions
 
-Claude Code plugins cannot ship a `permissions` block that gets merged into the user's settings
-(the plugin manifest only supports `agent` and `subagentStatusLine` at the root `settings.json`,
-and nested `.claude/settings.json` inside a plugin is not loaded). Users install permissions
-explicitly via:
+The plugin ships its own `PreToolUse` hook that auto-approves any Bash call which is *only* a
+Palantir CLI invocation (bare `palantir`, `${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir`, or an
+absolute cache path), optionally preceded by a single `echo`/`cat`/`printf` through a pipe.
+Chains (`;`, `&&`), redirects (`<`, `>`), subshells (`$(…)`), backticks, and dangerous verbs
+(`sudo`, `rm`, `curl`, `wget`, `chmod`, `chown`, `kill`) all defer to Claude Code's normal
+permission flow. Effect: installing the plugin is enough — no settings.json edits are required to
+stop the prompts.
+
+If you prefer to bake entries into your `~/.claude/settings.json` as well (for example, to keep
+the allowlist visible), the CLI still offers an idempotent installer:
 
 ```bash
 "${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" perms install              # writes ~/.claude/settings.json
@@ -111,9 +117,9 @@ explicitly via:
 "${CLAUDE_PLUGIN_ROOT}/.claude/bin/palantir" perms uninstall
 ```
 
-The installer is idempotent — re-running adds nothing on second call. It writes three pattern
-variants per verb (`${CLAUDE_PLUGIN_ROOT}/...`, absolute path, bare `palantir`) so the allowlist
-matches whichever form Claude Code's permission checker sees. `logout` stays on the `ask` list.
+The installer writes three pattern variants per verb (`${CLAUDE_PLUGIN_ROOT}/…`, absolute path,
+bare `palantir`) so the allowlist matches whichever form the permission checker sees. `logout`
+stays on the `ask` list in both the hook and the installer.
 
 ## Entry Kinds
 `decision` | `finding` | `error` | `pattern` | `note` | `review` | `machine-plan`
